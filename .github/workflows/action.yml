@@ -1,0 +1,35 @@
+name: Build and Deploy Docker Image
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Build Docker image
+        run: docker build -t offender92/angular .
+
+      - name: Log in to Docker Hub
+        run: docker login -u ${{ secrets.DOCKERU_NAME }} -p ${{ secrets.DOCKERU_PASS }}
+
+      - name: Push Docker image to Docker Hub
+        run: docker push tushar0123/angular
+
+      - name: Deploy to EC2
+        env:
+          PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          HOSTNAME: ${{ secrets.EC2_HOST }}
+          USER_NAME: ${{ secrets.EC2_USERNAME }}
+        run: |
+          echo "$PRIVATE_KEY" > key.pem && chmod 600 key.pem
+          ssh -o StrictHostKeyChecking=no -i key.pem ${USER_NAME}@${HOSTNAME} 
+          run: |
+            sudo docker pull tushar0123/angular:latest
+            sudo docker run -d -p 80:80 --name angular offender92/angular:latest
